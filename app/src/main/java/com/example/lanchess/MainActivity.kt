@@ -1,6 +1,5 @@
 package com.example.lanchess
 
-import com.example.lanchess.models.Move 
 import android.app.Activity
 import android.os.Bundle
 import android.graphics.Color
