@@ -201,7 +201,7 @@ class MainActivity : Activity() {
 
     private fun applyMove(uci: String, send: Boolean) {
         try {
-            val candidate = Move.fromValue(uci)
+            val candidate = Move(uci)
             if (!board.legalMoves().contains(candidate)) {
                 if (send) status.text = "Geçersiz hamle." 
                 renderBoard(); return
