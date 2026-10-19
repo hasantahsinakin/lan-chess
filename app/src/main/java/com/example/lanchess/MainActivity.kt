@@ -8,7 +8,7 @@ import android.view.Gravity
 import android.view.View
 import android.widget.*
 import com.github.bhlangonijr.chesslib.Board
-import com.github.bhlangonijr.chesslib.Move
+import com.github.bhlangonijr.chesslib.move.Move
 import com.github.bhlangonijr.chesslib.Square
 import java.io.BufferedReader
 import java.io.InputStreamReader
