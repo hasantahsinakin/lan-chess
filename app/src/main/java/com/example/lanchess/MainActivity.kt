@@ -119,30 +119,53 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun attachSocket(s: Socket, host: Boolean) {
-        socket = s; isHost = host; connected = true
-        writer = PrintWriter(s.getOutputStream(), true)
-        reader = BufferedReader(InputStreamReader(s.getInputStream()))
-        if (!host) { myColor = "BLACK"; gameStarted = true }
-        runOnUiThread {
-            status.text = if (host) "Rakip bağlandı. Sen Beyazsın; ilk hamle sende." else "Bağlandın. Sen Siyahsın; Beyaz'ın hamlesini bekle."
-            hostButton.isEnabled = false; joinButton.isEnabled = false; newButton.isEnabled = true; renderBoard()
-        }
-        io.execute {
-            try {
-                while (true) {
-                    val line = reader?.readLine() ?: break
-                    if (line.startsWith("MOVE ")) {
-                        val uci = line.substringAfter("MOVE ").trim()
-                        runOnUiThread { applyMove(uci, false) }
-                    } else if (line == "RESET") {
-                        runOnUiThread { board.loadFromFen(Board().fen); selected = null; renderBoard(); status.text = "Yeni oyun başladı." }
+private fun attachSocket(s: Socket, host: Boolean) {
+    socket = s; isHost = host; connected = true
+    writer = PrintWriter(s.getOutputStream(), true)
+    reader = BufferedReader(InputStreamReader(s.getInputStream()))
+    
+    if (host) {
+        myColor = "WHITE"
+        gameStarted = true
+        // İstemciye onun siyah olduğunu bildirelim
+        writer?.println("ROLE BLACK")
+    } else {
+        myColor = "BLACK"
+        gameStarted = true
+    }
+
+    runOnUiThread {
+        status.text = if (host) "Rakip bağlandı. Sen Beyazsın; ilk hamle sende." else "Bağlandın. Sen Siyahsın; Beyaz'ın hamlesini bekle."
+        hostButton.isEnabled = false; joinButton.isEnabled = false; newButton.isEnabled = true; renderBoard()
+    }
+    
+    io.execute {
+        try {
+            while (true) {
+                val line = reader?.readLine() ?: break
+                if (line.startsWith("MOVE ")) {
+                    val uci = line.substringAfter("MOVE ").trim()
+                    runOnUiThread { applyMove(uci, false) }
+                } else if (line == "RESET") {
+                    runOnUiThread { 
+                        board.loadFromFen(Board().fen) 
+                        selected = null 
+                        renderBoard() 
+                        status.text = "Yeni oyun başladı. Beyaz başlar." 
                     }
+                } else if (line.startsWith("ROLE ")) {
+                    val role = line.substringAfter("ROLE ").trim()
+                    myColor = role // Gelen mesaja göre rengimizi kesinleştiriyoruz
                 }
-            } catch (_: Exception) { }
-            runOnUiThread { connected = false; status.text = "Bağlantı kesildi. Aynı ağda olduğunuzu kontrol edin."; hostButton.isEnabled = true; joinButton.isEnabled = true }
+            }
+        } catch (_: Exception) { }
+        runOnUiThread { 
+            connected = false
+            status.text = "Bağlantı kesildi. Aynı ağda olduğunuzu kontrol edin."
+            hostButton.isEnabled = true; joinButton.isEnabled = true 
         }
     }
+}
 
 private fun resetBoard() {
     board.loadFromFen(Board().fen)
