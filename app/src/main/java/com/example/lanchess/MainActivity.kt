@@ -229,28 +229,46 @@ private fun resetBoard() {
         applyMove(move, true)
     }
 
-    private fun applyMove(uci: String, send: Boolean) {
-        try {
-            val candidate = Move(uci, board.sideToMove)
-            if (!board.legalMoves().contains(candidate)) {
-                if (send) status.text = "Geçersiz hamle." 
-                renderBoard(); return
-            }
-            board.doMove(candidate)
-            if (send) writer?.println("MOVE $uci")
-            selected = null; legalTargets = emptySet()
-            val outcome = when {
-                board.isMated -> "Şah mat! ${if (board.sideToMove.name == "WHITE") "Siyah" else "Beyaz"} kazandı."
-                board.isStaleMate -> "Pat! Oyun berabere."
-                board.isDraw -> "Berabere."
-                board.isKingAttacked -> "Şah! Sıra: ${if (board.sideToMove.name == "WHITE") "Beyaz" else "Siyah"}."
-                else -> "Sıra: ${if (board.sideToMove.name == "WHITE") "Beyaz" else "Siyah"}."
-            }
-            status.text = outcome
+private fun applyMove(uci: String, send: Boolean) {
+    try {
+        val candidate = Move(uci, board.sideToMove)
+        if (!board.legalMoves().contains(candidate)) {
+            if (send) status.text = "Geçersiz hamle." 
             renderBoard()
-        } catch (e: Exception) { status.text = "Hamle işlenemedi: ${e.localizedMessage}"; renderBoard() }
-    }
+            return
+        }
+        
+        board.doMove(candidate)
+        
+        // Eğer bu hamleyi yerel kullanıcı yaptıysa, karşı cihaza TCP soketi üzerinden gönderiyoruz
+        if (send) {
+            io.execute {
+                writer?.println("MOVE $uci")
+            }
+        }
+        
+        selected = null
+        legalTargets = emptySet()
+        
+        // Sıra ve oyun durumu metinlerini güncelliyoruz
+        val currentTurnColor = if (board.sideToMove.name == "WHITE") "Beyaz" else "Siyah"
+        val isMyTurn = board.sideToMove.name == myColor
 
+        val outcome = when {
+            board.isMated -> "Şah mat! Kazanan: ${if (currentTurnColor == "Beyaz") "Siyah" else "Beyaz"}."
+            board.isStaleMate -> "Pat! Oyun berabere."
+            board.isDraw -> "Berabere."
+            board.isKingAttacked -> "Şah! Sıra: $currentTurnColor ${if (isMyTurn) "(Senin sıran)" else "(Rakibin sırası)"}"
+            else -> "Sıra: $currentTurnColor ${if (isMyTurn) "(Senin sıran)" else "(Rakibin sırası)"}"
+        }
+        
+        status.text = outcome
+        renderBoard()
+    } catch (e: Exception) { 
+        status.text = "Hamle işlenemedi: ${e.localizedMessage}"
+        renderBoard() 
+    }
+}
     private fun pieceGlyph(piece: String): String = when (piece) {
         "WHITE_KING" -> "♔"; "WHITE_QUEEN" -> "♕"; "WHITE_ROOK" -> "♖"; "WHITE_BISHOP" -> "♗"; "WHITE_KNIGHT" -> "♘"; "WHITE_PAWN" -> "♙"
         "BLACK_KING" -> "♚"; "BLACK_QUEEN" -> "♛"; "BLACK_ROOK" -> "♜"; "BLACK_BISHOP" -> "♝"; "BLACK_KNIGHT" -> "♞"; "BLACK_PAWN" -> "♟"
