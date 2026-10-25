@@ -144,12 +144,19 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun resetBoard() {
-        board.loadFromFen(Board().fen); selected = null; legalTargets = emptySet()
+private fun resetBoard() {
+    board.loadFromFen(Board().fen)
+    selected = null
+    legalTargets = emptySet()
+    
+    // Ağ üzerindeki gönderim işlemini arka plan iş parçacığına taşıyoruz:
+    io.execute {
         writer?.println("RESET")
-        status.text = if (connected) "Yeni oyun başladı. Beyaz başlar." else "Yeni oyun hazır. Bir rakip bağlayın."
-        renderBoard()
     }
+    
+    status.text = if (connected) "Yeni oyun başladı. Beyaz başlar." else "Yeni oyun hazır. Bir rakip bağlayın."
+    renderBoard()
+}
 
     private fun renderBoard() {
         if (!::boardGrid.isInitialized) return
